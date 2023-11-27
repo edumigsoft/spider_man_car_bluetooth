@@ -1,35 +1,37 @@
-#ifndef __SOUNDS_H__
-#define __SOUNDS_H__
+// #pragma once
 
-#include "Arduino.h"
-#include "CarHorn.h" // A boring car horn
-#include "VwBeetleidle.h"
+// #ifndef __SOUNDS_H__
+// #define __SOUNDS_H__
 
-// Engine parameters ----------------------------------------------------------------------------------------------------
-// Engine max. RPM in % of idle RPM. About 200% for big Diesels, 400% for fast running motors.
-uint32_t MAX_RPM_PERCENTAGE = 320; // NOTE! Was called TOP_SPEED_MULTIPLIER (TSM) in earlier versions and was a multiplier instead of a percentage!
-volatile int hornVolumePercentage = 100; // Adjust the horn volume (usually = 100%)
+// #include "Arduino.h"
+// #include "CarHorn.h" // A boring car horn
+// #include "VwBeetleidle.h"
 
-// Sound volumes
-volatile int16_t masterVolume = 100; // Master volume percentage
-volatile uint8_t dacOffset = 0;
+// // Engine parameters ----------------------------------------------------------------------------------------------------
+// // Engine max. RPM in % of idle RPM. About 200% for big Diesels, 400% for fast running motors.
+// uint32_t MAX_RPM_PERCENTAGE = 320; // NOTE! Was called TOP_SPEED_MULTIPLIER (TSM) in earlier versions and was a multiplier instead of a percentage!
+// volatile int hornVolumePercentage = 100; // Adjust the horn volume (usually = 100%)
 
-// Sound
-volatile boolean hornTrigger = false; // Trigger for horn on / off
+// // Sound volumes
+// volatile int16_t masterVolume = 100; // Master volume percentage
+// volatile uint8_t dacOffset = 0;
 
-// Sound latches
-volatile boolean hornLatch = false; // Horn latch bit
+// // Sound
+// volatile boolean hornTrigger = false; // Trigger for horn on / off
 
-// Sampling intervals for interrupt timer (adjusted according to your sound file sampling rate)
-uint32_t maxSampleInterval = 4000000 / sampleRate;
-uint32_t minSampleInterval = 4000000 / sampleRate * 100 / MAX_RPM_PERCENTAGE;
+// // Sound latches
+// volatile boolean hornLatch = false; // Horn latch bit
 
-// Interrupt timer for fixed sample rate playback (horn etc., playing in parallel with engine sound)
-hw_timer_t *fixedTimer = NULL;
-portMUX_TYPE fixedTimerMux = portMUX_INITIALIZER_UNLOCKED;
-volatile uint32_t fixedTimerTicks = maxSampleInterval;
+// // Sampling intervals for interrupt timer (adjusted according to your sound file sampling rate)
+// uint32_t maxSampleInterval = 4000000 / sampleRate;
+// uint32_t minSampleInterval = 4000000 / sampleRate * 100 / MAX_RPM_PERCENTAGE;
 
-//
-void IRAM_ATTR fixedPlaybackTimer();
+// // Interrupt timer for fixed sample rate playback (horn etc., playing in parallel with engine sound)
+// hw_timer_t *fixedTimer = NULL;
+// portMUX_TYPE fixedTimerMux = portMUX_INITIALIZER_UNLOCKED;
+// volatile uint32_t fixedTimerTicks = maxSampleInterval;
 
-#endif // __SOUNDS_H__
+// //
+// void IRAM_ATTR fixedPlaybackTimer();
+
+// #endif // __SOUNDS_H__

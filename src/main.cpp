@@ -2,8 +2,82 @@
 // #include <Servo.h>
 #include "esp32-hal-ledc.h"
 // #include "Melody.h"
-#include "sounds/sounds.h"
+//
+#include "sounds/CarHorn.h" // A boring car horn
+// #include "sounds/VwBeetleidle.h"
 
+// Engine parameters ----------------------------------------------------------------------------------------------------
+// Engine max. RPM in % of idle RPM. About 200% for big Diesels, 400% for fast running motors.
+uint32_t MAX_RPM_PERCENTAGE = 320;       // NOTE! Was called TOP_SPEED_MULTIPLIER (TSM) in earlier versions and was a multiplier instead of a percentage!
+volatile int hornVolumePercentage = 100; // Adjust the horn volume (usually = 100%)
+
+// Sound volumes
+volatile int16_t masterVolume = 100; // Master volume percentage
+volatile uint8_t dacOffset = 0;
+
+// Sound
+volatile boolean hornTrigger = false; // Trigger for horn on / off
+
+// Sound latches
+volatile boolean hornLatch = false; // Horn latch bit
+
+// Sampling intervals for interrupt timer (adjusted according to your sound file sampling rate)
+uint32_t maxSampleInterval = 4000000 / hornSampleRate;
+uint32_t minSampleInterval = 4000000 / hornSampleRate * 100 / MAX_RPM_PERCENTAGE;
+
+// Interrupt timer for fixed sample rate playback (horn etc., playing in parallel with engine sound)
+hw_timer_t *fixedTimer = NULL;
+portMUX_TYPE fixedTimerMux = portMUX_INITIALIZER_UNLOCKED;
+volatile uint32_t fixedTimerTicks = maxSampleInterval;
+
+void IRAM_ATTR fixedPlaybackTimer()
+{
+  static uint32_t curHornSample = 0; // Index of currently loaded horn sample
+  static int32_t a, a1, a2 = 0;      // Input signals "a" for mixer
+  static int32_t b = 0;              // Input signals "b" for mixer
+  static int32_t c = 0;              // Input signals "c" for mixer
+  static int32_t d = 0;              // Input signals "d" for mixer
+
+  if (hornTrigger || hornLatch)
+  {
+    fixedTimerTicks = 4000000 / hornSampleRate;         // our fixed sampling rate
+    timerAlarmWrite(fixedTimer, fixedTimerTicks, true); // // change timer ticks, autoreload true
+
+    if (curHornSample < hornSampleCount - 1)
+    {
+      a1 = (hornSamples[curHornSample] * hornVolumePercentage / 100);
+      curHornSample++;
+#ifdef HORN_LOOP // Optional "endless loop" (points to be defined manually in horn file)
+      if (hornTrigger && curHornSample == hornLoopEnd)
+        curHornSample = hornLoopBegin; // Loop, if trigger still present
+#endif
+    }
+    else
+    { // End of sample
+      curHornSample = 0;
+      a1 = 0;
+      hornLatch = false;
+    }
+  }
+
+  // Mixing sounds together **********************************************************************
+  a = a1 + a2; // Horn & siren
+  if (a < 2 && a > -2)
+    a = 0; // Remove noise floor TODO, experimental
+  // DAC output (groups mixed together) ****************************************************************************
+  dacWrite(DAC2, constrain(((a * 8 / 10) + (b * 2 / 10) + c + d) * masterVolume / 100 + dacOffset, 0, 255)); // Mix signals, add 128 offset, write result to DAC
+}
+
+void setupFixedPlaybackTimer()
+{
+  // Interrupt timer for fixed sample rate playback
+  fixedTimer = timerBegin(1, 20, true);                        // timer 1, MWDT clock period = 12.5 ns * TIMGn_Tx_WDT_CLK_PRESCALE -> 12.5 ns * 20 -> 250 ns = 0.25 us, countUp
+  timerAttachInterrupt(fixedTimer, &fixedPlaybackTimer, true); // edge (not level) triggered
+  timerAlarmWrite(fixedTimer, fixedTimerTicks, true);          // autoreload true
+  timerAlarmEnable(fixedTimer);                                // enable
+}
+
+//
 BluetoothSerial SerialBT;
 char command;
 char commandOld;
@@ -168,6 +242,9 @@ void setup()
   // ledcSetup(LEDC_CHANNEL_TONE, LEDC_BASE_FREQ, LEDC_TIMER_8_BIT);
   // ledcAttachPin(TONE_PIN, LEDC_CHANNEL_TONE);
   // ledcWrite(LEDC_CHANNEL_TONE, 0);
+  
+  // 
+  setupFixedPlaybackTimer();
 
   delay(1000);
   Serial.println("Setup End");
@@ -326,11 +403,16 @@ void loop()
       // play(darthVader);
       // xTaskCreate(TaskPlayer, "TaskPlayer", 1024 * 3, NULL, 5, &TaskP);
 
+      hornTrigger = true;
+      hornLatch = true;
+
       Serial.println("Horn On");
       break;
     case 'v':
       // vTaskDelete(TaskP);
       // TaskP = NULL;
+
+      hornTrigger = false;
 
       Serial.println("Horn Off");
       break;
