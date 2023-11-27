@@ -1,28 +1,27 @@
 #include "BluetoothSerial.h"
 #include <Servo.h>
 #include "esp32-hal-ledc.h"
-#include "Melody.h"
+// #include "Melody.h"
+#include "sounds.h"
 
 BluetoothSerial SerialBT;
 char command;
 char commandOld;
 int speed = 0;
 
+// TaskHandle_t TaskP;
+
 // Setting PWM properties
 #define LEDC_CHANNEL_MB3 2
 #define LEDC_CHANNEL_MB4 3
+// #define LEDC_CHANNEL_TONE 5
 #define LEDC_TIMER_8_BIT 8
 #define LEDC_BASE_FREQ 5000
-// #define MTR_PIN_INA 14
-// #define MTR_PIN_INB 12
-// #define MTR_SPEED 100
+
+// Melody darthVader(" (ggg e,-. b,-- | g e,-. b,-- g+ (ddde,-.)* b,--  | g, e,-. b,-- g+");
+// Melody darthVader(" (ggg e,-. b,-- | g e,-. b,-- g+ (ddde,-.)* b,--  | g, e,-. b,-- g+ | g* g-.g--  (g g,-. f-- (ed#)-- e-)* r- g#- c#* b#-.b-- |  (b,a)-- b,- r- e,- g, e,-. g,-- | b, g-. b,-- d*+  | g* g-.g--  (g g,-. f-- (ed#)-- e-)* r- g#- c#* b#-.b-- |  (b,a)-- b,- r- e,- g, e,-. b,-- | g e,-. b,-- g+ |)<<_ ");
 
 Servo servoDir = Servo();
-
-//
-#define LEDC_CHANNEL_TONE 5
-Melody darthVader(" (ggg e,-. b,-- | g e,-. b,-- g+ (ddde,-.)* b,--  | g, e,-. b,-- g+");
-// Melody darthVader(" (ggg e,-. b,-- | g e,-. b,-- g+ (ddde,-.)* b,--  | g, e,-. b,-- g+ | g* g-.g--  (g g,-. f-- (ed#)-- e-)* r- g#- c#* b#-.b-- |  (b,a)-- b,- r- e,- g, e,-. g,-- | b, g-. b,-- d*+  | g* g-.g--  (g g,-. f-- (ed#)-- e-)* r- g#- c#* b#-.b-- |  (b,a)-- b,- r- e,- g, e,-. b,-- | g e,-. b,-- g+ |)<<_ ");
 
 void motorForward()
 {
@@ -69,68 +68,84 @@ void directionCenter()
   Serial.println("Direction Center");
 }
 
-void setLoudness(int loudness)
-{
-  // Loudness could be use with a mapping function, according to your buzzer or sound-producing hardware
-#define MIN_HARDWARE_LOUDNESS 0
-#define MAX_HARDWARE_LOUDNESS 16
-  ledcWrite(LEDC_CHANNEL_TONE, map(loudness, -4, 4, MIN_HARDWARE_LOUDNESS, MAX_HARDWARE_LOUDNESS));
-}
+// void setLoudness(int loudness)
+// {
+//   // Loudness could be use with a mapping function, according to your buzzer or sound-producing hardware
+// #define MIN_HARDWARE_LOUDNESS 0
+// #define MAX_HARDWARE_LOUDNESS 16
+//   ledcWrite(LEDC_CHANNEL_TONE, map(loudness, -4, 4, MIN_HARDWARE_LOUDNESS, MAX_HARDWARE_LOUDNESS));
+// }
 
-void toneESP(int pin, int frequency) // FOR ESP Platform, pin is unused
-{
-  ledcWriteTone(LEDC_CHANNEL_TONE, frequency);
-}
+// void toneESP(int pin, int frequency) // FOR ESP Platform, pin is unused
+// {
+//   ledcWriteTone(LEDC_CHANNEL_TONE, frequency);
+// }
 
-void noToneESP(int pin) // FOR ESP Platform, pin is unused
-{
-  ledcWrite(LEDC_CHANNEL_TONE, 0);
-}
+// void noToneESP(int pin) // FOR ESP Platform, pin is unused
+// {
+//   ledcWrite(LEDC_CHANNEL_TONE, 0);
+// }
 
-void play(Melody melody)
-{
-  Serial.print("Melody length : ");
-  Serial.println(melody.length()); // Get the total length (number of notes) of the melody.
+// void play(Melody melody)
+// {
+//   Serial.print("Melody length : ");
+//   Serial.println(melody.length()); // Get the total length (number of notes) of the melody.
 
-  melody.restart(); // The melody iterator is restarted at the beginning.
+//   melody.restart(); // The melody iterator is restarted at the beginning.
 
-  while (melody.hasNext()) // While there is a next note to play.
-  {
-    melody.next(); // Move the melody note iterator to the next one.
+//   while (melody.hasNext()) // While there is a next note to play.
+//   {
+//     melody.next(); // Move the melody note iterator to the next one.
 
-    // printInfo(melody);
+//     // printInfo(melody);
 
-    unsigned int frequency = melody.getFrequency(); // Get the frequency in Hz of the curent note.
-    unsigned long duration = melody.getDuration();  // Get the duration in ms of the curent note.
-    unsigned int loudness = melody.getLoudness();   // Get the loudness of the curent note (in a subjective relative scale from -3 to +3).
-                                                    // Common interpretation will be -3 is really soft (ppp), and 3 really loud (fff).
+//     unsigned int frequency = melody.getFrequency(); // Get the frequency in Hz of the curent note.
+//     unsigned long duration = melody.getDuration();  // Get the duration in ms of the curent note.
+//     unsigned int loudness = melody.getLoudness();   // Get the loudness of the curent note (in a subjective relative scale from -3 to +3).
+//                                                     // Common interpretation will be -3 is really soft (ppp), and 3 really loud (fff).
 
-    if (frequency > 0)
-    {
-      toneESP(TONE_PIN, frequency);
-      setLoudness(loudness);
-    }
-    else
-    {
-      noToneESP(TONE_PIN);
-    }
+//     if (frequency > 0)
+//     {
+//       toneESP(TONE_PIN, frequency);
+//       setLoudness(loudness);
+//     }
+//     else
+//     {
+//       noToneESP(TONE_PIN);
+//     }
 
-    delay(duration);
+//     // delay(duration);
+//     vTaskDelay(duration / portTICK_PERIOD_MS);
 
-    // This 1 ms delay with no tone is added to let a "breathing" time between each note.
-    // Without it, identical consecutives notes will sound like just one long note.
-    noToneESP(TONE_PIN);
-    delay(1);
-  }
+//     // This 1 ms delay with no tone is added to let a "breathing" time between each note.
+//     // Without it, identical consecutives notes will sound like just one long note.
+//     noToneESP(TONE_PIN);
+//     // delay(1);
+//     vTaskDelay(1 / portTICK_PERIOD_MS);
+//   }
 
-  noToneESP(TONE_PIN);
-  delay(1000);
-}
+//   noToneESP(TONE_PIN);
+//   // delay(1000);
+//   vTaskDelay(1000 / portTICK_PERIOD_MS);
+// }
+
+// void TaskPlayer(void *arg)
+// {
+//   play(darthVader);
+
+//   vTaskDelete(NULL);
+// }
 
 void setup()
 {
   Serial.begin(9600);
+  while (!Serial)
+    ;
+
   SerialBT.begin("SpiderManCarBlue");
+  while (!SerialBT)
+    ;
+
   delay(2000);
   Serial.println();
   Serial.println("Setup Init");
@@ -150,9 +165,9 @@ void setup()
   motorStop();
 
   //
-  ledcSetup(LEDC_CHANNEL_TONE, LEDC_BASE_FREQ, LEDC_TIMER_8_BIT);
-  ledcAttachPin(TONE_PIN, LEDC_CHANNEL_TONE);
-  ledcWrite(LEDC_CHANNEL_TONE, 0);
+  // ledcSetup(LEDC_CHANNEL_TONE, LEDC_BASE_FREQ, LEDC_TIMER_8_BIT);
+  // ledcAttachPin(TONE_PIN, LEDC_CHANNEL_TONE);
+  // ledcWrite(LEDC_CHANNEL_TONE, 0);
 
   delay(1000);
   Serial.println("Setup End");
@@ -308,11 +323,15 @@ void loop()
       Serial.println("Back Lights Off");
       break;
     case 'V':
-      play(darthVader);
+      // play(darthVader);
+      // xTaskCreate(TaskPlayer, "TaskPlayer", 1024 * 3, NULL, 5, &TaskP);
 
       Serial.println("Horn On");
       break;
     case 'v':
+      // vTaskDelete(TaskP);
+      // TaskP = NULL;
+
       Serial.println("Horn Off");
       break;
     case 'X':
