@@ -1,8 +1,8 @@
 #include "BluetoothSerial.h"
-#include <Servo.h>
+// #include <Servo.h>
 #include "esp32-hal-ledc.h"
 // #include "Melody.h"
-#include "sounds.h"
+#include "sounds/sounds.h"
 
 BluetoothSerial SerialBT;
 char command;
@@ -21,7 +21,7 @@ int speed = 0;
 // Melody darthVader(" (ggg e,-. b,-- | g e,-. b,-- g+ (ddde,-.)* b,--  | g, e,-. b,-- g+");
 // Melody darthVader(" (ggg e,-. b,-- | g e,-. b,-- g+ (ddde,-.)* b,--  | g, e,-. b,-- g+ | g* g-.g--  (g g,-. f-- (ed#)-- e-)* r- g#- c#* b#-.b-- |  (b,a)-- b,- r- e,- g, e,-. g,-- | b, g-. b,-- d*+  | g* g-.g--  (g g,-. f-- (ed#)-- e-)* r- g#- c#* b#-.b-- |  (b,a)-- b,- r- e,- g, e,-. b,-- | g e,-. b,-- g+ |)<<_ ");
 
-Servo servoDir = Servo();
+// Servo servoDir = Servo();
 
 void motorForward()
 {
@@ -49,21 +49,21 @@ void motorStop()
 
 void directionRight()
 {
-  servoDir.write(SERVO_PIN, 0);
+  // servoDir.write(SERVO_PIN, 0);
 
   Serial.println("Direction Right");
 }
 
 void directionLeft()
 {
-  servoDir.write(SERVO_PIN, 80);
+  // servoDir.write(SERVO_PIN, 80);
 
   Serial.println("Direction Left");
 }
 
 void directionCenter()
 {
-  servoDir.write(SERVO_PIN, 48);
+  // servoDir.write(SERVO_PIN, 48);
 
   Serial.println("Direction Center");
 }
@@ -143,8 +143,8 @@ void setup()
     ;
 
   SerialBT.begin("SpiderManCarBlue");
-  while (!SerialBT)
-    ;
+  // while (!SerialBT)
+  //   ;
 
   delay(2000);
   Serial.println();
