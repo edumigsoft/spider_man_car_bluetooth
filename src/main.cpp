@@ -16,16 +16,16 @@ Servo servoDir = Servo();
 
 void motorForward()
 {
-  ledcWrite(LEDC_CHANNEL_MB3, speed);
-  ledcWrite(LEDC_CHANNEL_MB4, 0);
+  ledcWrite(LEDC_CHANNEL_MB3, 0);
+  ledcWrite(LEDC_CHANNEL_MB4, speed);
 
   Serial.printf("Forward, speed: %i\n", speed);
 }
 
 void motorBack()
 {
-  ledcWrite(LEDC_CHANNEL_MB3, 0);
-  ledcWrite(LEDC_CHANNEL_MB4, speed);
+  ledcWrite(LEDC_CHANNEL_MB3, speed);
+  ledcWrite(LEDC_CHANNEL_MB4, 0);
 
   Serial.printf("Back, speed: %i\n", speed);
 }
