@@ -50,8 +50,8 @@ void setup()
   traction.motorStop();
 
   // Buzzer
-  songsMelody.setMelody(5);
-
+  songsMelody.setMelody(1);
+  
   //
   delay(1000);
   Serial.println("Setup End");
