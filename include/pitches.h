@@ -1,5 +1,10 @@
-#ifndef __NOTES_H__
-#define __NOTES_H__
+/**
+ * Reference
+ * https://circuitdigest.com/microcontroller-projects/playing-melodies-on-piezo-buzzer-using-arduino-tone-function
+*/
+
+#ifndef __PITCHES_H__
+#define __PITCHES_H__
 
 #define NOTE_B0 31
 #define NOTE_C1 33
@@ -90,6 +95,5 @@
 #define NOTE_CS8 4435
 #define NOTE_D8 4699
 #define NOTE_DS8 4978
-#define REST 0
 
-#endif // __NOTES_H__
+#endif // __PITCHES_H__

@@ -1,6 +1,7 @@
 #include "BluetoothSerial.h"
 #include <Servo.h>
-// #include "songs_notes.h"
+#include "pitches.h"
+#include "themes.h"
 
 BluetoothSerial SerialBT;
 char command;
@@ -21,7 +22,91 @@ int speed = 0;
 // #define LEDC_BASE_FREQ_BUZZER 1000
 // #define LEDC_BASE_FREQ_BUZZER 2000
 #define LEDC_BASE_FREQ_BUZZER 5000
-// SongsNotes songsNotes = SongsNotes(LEDC_CHANNEL_BUZZER, BUZZER_PIN, LEDC_TIMER_BUZZER_BIT, LEDC_BASE_FREQ_BUZZER);
+
+int theme = 2;
+volatile bool play_notes = false;
+
+void taskPlayNotes(void *)
+{
+  int len = 0;
+
+  switch (theme)
+  {
+  case 0:
+    len = sizeof(Pirates_note) / sizeof(int);
+    break;
+  case 1:
+    len = sizeof(CrazyFrog_note) / sizeof(int);
+    break;
+  case 2:
+    len = sizeof(MarioUW_note) / sizeof(int);
+    break;
+  case 3:
+    len = sizeof(Titanic_note) / sizeof(int);
+    break;
+
+  default:
+    break;
+  }
+
+  int melody[len] = {};
+  int duration[len] = {};
+
+  switch (theme)
+  {
+  case 0:
+    for (size_t i = 0; i < len; i++)
+    {
+      melody[i] = Pirates_note[i];
+      duration[i] = Pirates_duration[i];
+    }
+    break;
+  case 1:
+    for (size_t i = 0; i < len; i++)
+    {
+      melody[i] = CrazyFrog_note[i];
+      duration[i] = CrazyFrog_duration[i];
+    }
+    break;
+  case 2:
+    for (size_t i = 0; i < len; i++)
+    {
+      melody[i] = MarioUW_note[i];
+      duration[i] = MarioUW_duration[i];
+    }
+    break;
+  case 3:
+    for (size_t i = 0; i < len; i++)
+    {
+      melody[i] = Titanic_note[i];
+      duration[i] = Titanic_duration[i];
+    }
+    break;
+
+  default:
+    break;
+  }
+
+  for (int thisNote = 0; thisNote < len; thisNote++)
+  {
+    if (!play_notes)
+    {
+      ledcWriteTone(LEDC_CHANNEL_BUZZER, 0);
+      vTaskDelete(NULL);
+    }
+
+    int noteDuration = 1000 / duration[thisNote]; // convert duration to time delay
+    ledcWriteTone(LEDC_CHANNEL_BUZZER, melody[thisNote]);
+    vTaskDelay(noteDuration / portTICK_PERIOD_MS);
+
+    int pauseBetweenNotes = noteDuration * 1.05; // Here 1.05 is tempo, increase to play it slower
+    ledcWriteTone(LEDC_CHANNEL_BUZZER, 0);
+    vTaskDelay(pauseBetweenNotes / portTICK_PERIOD_MS);
+  }
+
+  ledcWriteTone(LEDC_CHANNEL_BUZZER, 0);
+  vTaskDelete(NULL);
+}
 
 //
 const long interval_status = 100;
@@ -121,12 +206,8 @@ void setup()
   ledcAttachPin(MOTOR_B_4, LEDC_CHANNEL_MB4);
 
   // Buzzer
-  // songsNotes.setMellody(1);
-  // songsNotes.setMellody(2);
-  // songsNotes.setMellody(3);
-  // songsNotes.setMellody(4);
-  // songsNotes.setMellody(5);
-  // songsNotes.setMellody(6);
+  ledcSetup(LEDC_CHANNEL_BUZZER, LEDC_BASE_FREQ_BUZZER, LEDC_TIMER_BUZZER_BIT);
+  ledcAttachPin(BUZZER_PIN, LEDC_CHANNEL_BUZZER);
 
   // Battery
   analogSetPinAttenuation(BATTERY_PIN, ADC_11db);
@@ -291,12 +372,13 @@ void loop()
         Serial.println("Back Lights Off");
         break;
       case 'V':
-        // songsNotes.playSong();
+        play_notes = true;
+        xTaskCreate(taskPlayNotes, "Play Notes", 1024 * 4, NULL, 5, NULL);
 
         Serial.println("Horn On");
         break;
       case 'v':
-        // songsNotes.stopSong();
+        play_notes = false;
 
         Serial.println("Horn Off");
         break;
