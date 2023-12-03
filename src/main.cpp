@@ -1,190 +1,31 @@
 #include "BluetoothSerial.h"
-#include <Servo.h>
-// #include "pitches.h"
-// #include "themes.h"
+#include "direction.h"
+#include "traction.h"
+#include "battery.h"
 #include "songs_melody.h"
 
 BluetoothSerial SerialBT;
 char command;
 char commandOld;
-int speed = 0;
 
-// Setting PWM properties
-#define LEDC_CHANNEL_MB3 2
-#define LEDC_CHANNEL_MB4 3
-#define LEDC_TIMER_8_BIT 8
-#define LEDC_BASE_FREQ 5000
+// Direction
+Direction direction = Direction();
+
+// Traction
+Traction traction = Traction();
 
 // Buzzer / Mellody
 SongsMelody songsMelody = SongsMelody();
-// #define LEDC_CHANNEL_BUZZER 5
-// // #define LEDC_TIMER_BUZZER_BIT 8
-// // #define LEDC_TIMER_BUZZER_BIT 10
-// #define LEDC_TIMER_BUZZER_BIT 13
-// // #define LEDC_BASE_FREQ_BUZZER 1000
-// // #define LEDC_BASE_FREQ_BUZZER 2000
-// #define LEDC_BASE_FREQ_BUZZER 5000
 
-// int theme = 2;
-// volatile bool play_notes = false;
-
-// void taskPlayNotes(void *)
-// {
-//   int len = 0;
-
-//   switch (theme)
-//   {
-//   case 0:
-//     len = sizeof(Pirates_note) / sizeof(int);
-//     break;
-//   case 1:
-//     len = sizeof(CrazyFrog_note) / sizeof(int);
-//     break;
-//   case 2:
-//     len = sizeof(MarioUW_note) / sizeof(int);
-//     break;
-//   case 3:
-//     len = sizeof(Titanic_note) / sizeof(int);
-//     break;
-
-//   default:
-//     break;
-//   }
-
-//   int melody[len] = {};
-//   int duration[len] = {};
-
-//   switch (theme)
-//   {
-//   case 0:
-//     for (size_t i = 0; i < len; i++)
-//     {
-//       melody[i] = Pirates_note[i];
-//       duration[i] = Pirates_duration[i];
-//     }
-//     break;
-//   case 1:
-//     for (size_t i = 0; i < len; i++)
-//     {
-//       melody[i] = CrazyFrog_note[i];
-//       duration[i] = CrazyFrog_duration[i];
-//     }
-//     break;
-//   case 2:
-//     for (size_t i = 0; i < len; i++)
-//     {
-//       melody[i] = MarioUW_note[i];
-//       duration[i] = MarioUW_duration[i];
-//     }
-//     break;
-//   case 3:
-//     for (size_t i = 0; i < len; i++)
-//     {
-//       melody[i] = Titanic_note[i];
-//       duration[i] = Titanic_duration[i];
-//     }
-//     break;
-
-//   default:
-//     break;
-//   }
-
-//   for (int thisNote = 0; thisNote < len; thisNote++)
-//   {
-//     if (!play_notes)
-//     {
-//       ledcWriteTone(LEDC_CHANNEL_BUZZER, 0);
-//       vTaskDelete(NULL);
-//     }
-
-//     int noteDuration = 1000 / duration[thisNote]; // convert duration to time delay
-//     ledcWriteTone(LEDC_CHANNEL_BUZZER, melody[thisNote]);
-//     vTaskDelay(noteDuration / portTICK_PERIOD_MS);
-
-//     int pauseBetweenNotes = noteDuration * 1.05; // Here 1.05 is tempo, increase to play it slower
-//     // int pauseBetweenNotes = noteDuration * 1.30;
-//     ledcWriteTone(LEDC_CHANNEL_BUZZER, 0);
-//     vTaskDelay(pauseBetweenNotes / portTICK_PERIOD_MS);
-//   }
-
-//   ledcWriteTone(LEDC_CHANNEL_BUZZER, 0);
-//   vTaskDelete(NULL);
-// }
+// Battery
+Battery battery = Battery();
 
 //
 const long interval_status = 100;
+const long interval_status_connected = 1000;
 unsigned long previousMillisStatus = 0;
+unsigned long previousMillisStatusConnected = 0;
 bool status_connected = false;
-
-//
-Servo servoDir = Servo();
-
-void motorForward()
-{
-  ledcWrite(LEDC_CHANNEL_MB3, 0);
-  ledcWrite(LEDC_CHANNEL_MB4, speed);
-
-  Serial.printf("Forward, speed: %i\n", speed);
-}
-
-void motorBack()
-{
-  ledcWrite(LEDC_CHANNEL_MB3, speed);
-  ledcWrite(LEDC_CHANNEL_MB4, 0);
-
-  Serial.printf("Back, speed: %i\n", speed);
-}
-
-void motorStop()
-{
-  ledcWrite(LEDC_CHANNEL_MB3, 0);
-  ledcWrite(LEDC_CHANNEL_MB4, 0);
-
-  Serial.println("Stop");
-}
-
-void directionRight()
-{
-  servoDir.write(SERVO_PIN, 0);
-
-  Serial.println("Direction Right");
-}
-
-void directionLeft()
-{
-  servoDir.write(SERVO_PIN, 80);
-
-  Serial.println("Direction Left");
-}
-
-void directionCenter()
-{
-  servoDir.write(SERVO_PIN, 48);
-
-  Serial.println("Direction Center");
-}
-
-// Battery
-const long interval_battery_read = 3000;
-const long interval_battery_low = 50;
-unsigned long previousMillisBattery = 0;
-unsigned long previousMillisBatteryLow = 0;
-bool battery_low = false;
-
-void loopBattery()
-{
-  float value = analogRead(BATTERY_PIN);
-  float batteryVolts = map(value, 0.0f, 4095.0f, 0.0f, BATTERY_VOLTS);
-  float batteryLevel = map(value, 0.0f, 4095.0f, 0.0f, 100.0f);
-
-  Serial.printf("Battery1, value: %4.0f, level: %3.0f %%, volts: %1.2f V\n", value, batteryLevel, batteryVolts);
-
-  if (value <= BATTERY_LIMIT_MIN)
-  {
-    battery_low = true;
-    Serial.println("Alarm battery low!");
-  }
-}
 
 void setup()
 {
@@ -202,24 +43,16 @@ void setup()
   pinMode(CONNECTED_PIN, OUTPUT);
   digitalWrite(CONNECTED_PIN, LOW);
 
-  // configure Motor PWM functionalitites
-  ledcSetup(LEDC_CHANNEL_MB3, LEDC_BASE_FREQ, LEDC_TIMER_8_BIT);
-  ledcSetup(LEDC_CHANNEL_MB4, LEDC_BASE_FREQ, LEDC_TIMER_8_BIT);
-  ledcAttachPin(MOTOR_B_3, LEDC_CHANNEL_MB3);
-  ledcAttachPin(MOTOR_B_4, LEDC_CHANNEL_MB4);
+  // Direction
+  direction.directionCenter();
+
+  // Traction
+  traction.motorStop();
 
   // Buzzer
-  // ledcSetup(LEDC_CHANNEL_BUZZER, LEDC_BASE_FREQ_BUZZER, LEDC_TIMER_BUZZER_BIT);
-  // ledcAttachPin(BUZZER_PIN, LEDC_CHANNEL_BUZZER);
   songsMelody.setMelody(5);
 
-  // Battery
-  analogSetPinAttenuation(BATTERY_PIN, ADC_11db);
-
   //
-  directionCenter();
-  motorStop();
-
   delay(1000);
   Serial.println("Setup End");
 }
@@ -228,7 +61,7 @@ void loop()
 {
   unsigned long currentMillis = millis();
 
-  if (!battery_low)
+  if (!battery.battery_low)
   {
     /*
     Forward------------------F
@@ -309,56 +142,56 @@ void loop()
       {
       case 'F':
       { // move frente
-        motorForward();
-        directionCenter();
+        traction.motorForward();
+        direction.directionCenter();
         break;
       }
       case 'I':
       { // frente direita
-        motorForward();
-        directionRight();
+        traction.motorForward();
+        direction.directionRight();
 
         Serial.println("Forward Right");
         break;
       }
       case 'G':
       { // frente esquerda
-        motorForward();
-        directionLeft();
+        traction.motorForward();
+        direction.directionLeft();
 
         Serial.println("Forward Left");
         break;
       }
       case 'R':
       { // direita
-        motorStop();
-        directionRight();
+        traction.motorStop();
+        direction.directionRight();
         break;
       }
       case 'L':
       { // esquerda
-        motorStop();
-        directionLeft();
+        traction.motorStop();
+        direction.directionLeft();
         break;
       }
       case 'B':
       { // ré
-        motorBack();
-        directionCenter();
+        traction.motorBack();
+        direction.directionCenter();
         break;
       }
       case 'H':
       { // ré esquerda
-        motorBack();
-        directionLeft();
+        traction.motorBack();
+        direction.directionLeft();
 
         Serial.println("Back Left");
         break;
       }
       case 'J':
       { // ré direita
-        motorBack();
-        directionRight();
+        traction.motorBack();
+        direction.directionRight();
 
         Serial.println("Back Right");
         break;
@@ -376,14 +209,11 @@ void loop()
         Serial.println("Back Lights Off");
         break;
       case 'V':
-        // play_notes = true;
-        // xTaskCreate(taskPlayNotes, "Play Notes", 1024 * 4, NULL, 5, NULL);
         songsMelody.playMelody();
 
         Serial.println("Horn On");
         break;
       case 'v':
-        // play_notes = false;
         songsMelody.stopMelody();
 
         Serial.println("Horn Off");
@@ -396,68 +226,68 @@ void loop()
         break;
       case '0':
       {
-        speed = 0;
-        Serial.printf("Speed 0: %i\n", speed);
+        traction.speed = 0;
+        Serial.printf("Speed 0: %i\n", traction.speed);
         break;
       }
       case '1':
       {
-        speed = 120;
-        Serial.printf("Speed 1: %i\n", speed);
+        traction.speed = 120;
+        Serial.printf("Speed 1: %i\n", traction.speed);
         break;
       }
       case '2':
       {
-        speed = 130;
-        Serial.printf("Speed 2: %i\n", speed);
+        traction.speed = 130;
+        Serial.printf("Speed 2: %i\n", traction.speed);
         break;
       }
       case '3':
       {
-        speed = 140;
-        Serial.printf("Speed 3: %i\n", speed);
+        traction.speed = 140;
+        Serial.printf("Speed 3: %i\n", traction.speed);
         break;
       }
       case '4':
       {
-        speed = 160;
-        Serial.printf("Speed 4: %i\n", speed);
+        traction.speed = 160;
+        Serial.printf("Speed 4: %i\n", traction.speed);
         break;
       }
       case '5':
       {
-        speed = 180;
-        Serial.printf("Speed 5: %i\n", speed);
+        traction.speed = 180;
+        Serial.printf("Speed 5: %i\n", traction.speed);
         break;
       }
       case '6':
       {
-        speed = 200;
-        Serial.printf("Speed 6: %i\n", speed);
+        traction.speed = 200;
+        Serial.printf("Speed 6: %i\n", traction.speed);
         break;
       }
       case '7':
       {
-        speed = 210;
-        Serial.printf("Speed 7: %i\n", speed);
+        traction.speed = 210;
+        Serial.printf("Speed 7: %i\n", traction.speed);
         break;
       }
       case '8':
       {
-        speed = 220;
-        Serial.printf("Speed 8: %i\n", speed);
+        traction.speed = 220;
+        Serial.printf("Speed 8: %i\n", traction.speed);
         break;
       }
       case '9':
       {
-        speed = 240;
-        Serial.printf("Speed 9: %i\n", speed);
+        traction.speed = 240;
+        Serial.printf("Speed 9: %i\n", traction.speed);
         break;
       }
       case 'q':
       {
-        speed = 255;
-        Serial.printf("Speed 10: %i\n", speed);
+        traction.speed = 255;
+        Serial.printf("Speed 10: %i\n", traction.speed);
         break;
       }
       case 'D':
@@ -472,13 +302,13 @@ void loop()
       {
         status_connected = true;
         digitalWrite(CONNECTED_PIN, LOW);
-        directionCenter();
-        motorStop();
+        direction.directionCenter();
+        traction.motorStop();
         break;
       }
       }
     }
-
+    
     if (currentMillis - previousMillisStatus >= interval_status && !status_connected)
     {
       previousMillisStatus = currentMillis;
@@ -486,18 +316,13 @@ void loop()
       digitalWrite(CONNECTED_PIN, !digitalRead(CONNECTED_PIN));
     }
 
-    if (currentMillis - previousMillisBattery >= interval_battery_read && !battery_low)
+    if (currentMillis - previousMillisStatusConnected >= interval_status_connected && status_connected)
     {
-      previousMillisBattery = currentMillis;
+      previousMillisStatusConnected = currentMillis;
 
-      // loopBattery();
+      digitalWrite(CONNECTED_PIN, !digitalRead(CONNECTED_PIN));
     }
   }
 
-  if (currentMillis - previousMillisBatteryLow >= interval_battery_low && battery_low)
-  {
-    previousMillisBatteryLow = currentMillis;
-
-    digitalWrite(CONNECTED_PIN, !digitalRead(CONNECTED_PIN));
-  }
+  battery.loopBattery(currentMillis);
 }
