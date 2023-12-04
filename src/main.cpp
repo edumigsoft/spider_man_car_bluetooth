@@ -51,7 +51,7 @@ void setup()
 
   // Buzzer
   songsMelody.setMelody(1);
-  
+
   //
   delay(1000);
   Serial.println("Setup End");
@@ -308,15 +308,22 @@ void loop()
       }
       }
     }
-    
-    if (currentMillis - previousMillisStatus >= interval_status && !status_connected)
+    else
+    {
+      SerialBT.disconnect();
+      direction.directionCenter();
+      traction.motorStop();
+      digitalWrite(CONNECTED_PIN, LOW);
+    }
+
+    if (currentMillis - previousMillisStatus >= interval_status && !status_connected && !battery.battery_low)
     {
       previousMillisStatus = currentMillis;
 
       digitalWrite(CONNECTED_PIN, !digitalRead(CONNECTED_PIN));
     }
 
-    if (currentMillis - previousMillisStatusConnected >= interval_status_connected && status_connected)
+    if (currentMillis - previousMillisStatusConnected >= interval_status_connected && status_connected && !battery.battery_low)
     {
       previousMillisStatusConnected = currentMillis;
 
