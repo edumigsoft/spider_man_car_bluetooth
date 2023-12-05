@@ -10,7 +10,7 @@ Battery::Battery()
 {
     pinMode(BATTERY_LOW_PIN, OUTPUT);
     digitalWrite(BATTERY_LOW_PIN, LOW);
-    analogSetPinAttenuation(BATTERY_PIN, ADC_11db);
+    analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
 }
 
 void Battery::loopBattery(unsigned long currentMillis)
@@ -19,7 +19,7 @@ void Battery::loopBattery(unsigned long currentMillis)
     {
         previousMillisBattery = currentMillis;
 
-        float value = analogRead(BATTERY_PIN);
+        float value = analogRead(BATTERY_ADC_PIN);
         float batteryVolts = map(value, 0.0f, 4095.0f, 0.0f, BATTERY_VOLTS);
         float batteryLevel = map(value, 0.0f, 4095.0f, 0.0f, 100.0f);
 
